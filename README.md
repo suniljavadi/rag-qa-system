@@ -72,18 +72,18 @@ python build_index.py
 
 The index-building script expects `data/docs.txt`; the interactive script expects `example.txt`.
 
-The Streamlit app checks for a saved `faiss_index` next to `streamlit_app.py`. If it is absent, the app automatically builds an in-memory index from `example.txt`, so the demo can start without a separate indexing command. The first question still requires an OpenAI API key for embeddings and chat responses.
+The Streamlit app builds an in-memory index from `example.txt`; it does not deserialize saved FAISS indexes. The first question still requires an OpenAI API key for embeddings and chat responses.
 
 ## Security Status
 
-The repository now reads `OPENAI_API_KEY` from environment configuration and includes `.env.example`; `.env` remains ignored. If an earlier committed key was ever valid, rotate it separately because removing it from the current tree does not erase Git history.
+The repository reads `OPENAI_API_KEY` from environment configuration and includes `.env.example`; `.env` remains ignored. The app does not load serialized FAISS indexes, which can require unsafe pickle deserialization. Retrieved context and questions are marked as untrusted in the prompt. If an earlier committed key was ever valid, rotate it separately because removing it from the current tree does not erase Git history.
 
 ## Limitations
 
 - The index is rebuilt in memory by `app.py`.
 - Retrieval is over the supplied text files only.
 - Responses are not returned with citations or source spans.
-- There is no document ingestion API, access control, prompt-injection defense, evaluation harness, or production deployment.
+- There is no document ingestion API, access control, robust prompt-injection defense, evaluation harness, or production deployment.
 - The quality of answers depends on the configured OpenAI models and the small example corpus.
 
 ## Future Enhancements
