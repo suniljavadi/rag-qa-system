@@ -1,4 +1,5 @@
 import streamlit as st
+import logging
 import os
 from pathlib import Path
 from dotenv import load_dotenv
@@ -11,6 +12,10 @@ from langchain_core.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from collections import deque
 from operator import itemgetter
+
+from rag_utils import clean_question, history_entry
+
+logger = logging.getLogger(__name__)
 
 # Load environment variables
 load_dotenv()
@@ -106,27 +111,25 @@ for msg in st.session_state.history:
 question = st.text_input("Enter your question:")
 
 if st.button("Ask"):
-    if question:
-        # Get response
-        result = conversational_chain.invoke(
-            {
-                "question": question,
-                "history": "\n".join(st.session_state.history),
-            }
-        )
-        
-        # Update history
-        st.session_state.history.append(f"Human: {question}")
-        st.session_state.history.append(f"Assistant: {result}")
-        
-        # Display new response
-        st.write(f"**You:** {question}")
-        st.write(f"**Bot:** {result}")
-        
-        # Rerun to update display
-        st.rerun()
+    try:
+        cleaned_question = clean_question(question)
+    except ValueError as error:
+        st.warning(str(error))
     else:
-        st.warning("Please enter a question.")
+        try:
+            result = conversational_chain.invoke(
+                {
+                    "question": cleaned_question,
+                    "history": "\n".join(st.session_state.history),
+                }
+            )
+        except Exception:
+            logger.exception("Question answering failed")
+            st.error("The question could not be answered right now. Please try again.")
+        else:
+            st.session_state.history.append(history_entry("Human", cleaned_question))
+            st.session_state.history.append(history_entry("Assistant", result))
+            st.rerun()
 
 # Button to clear history
 if st.button("Clear History"):
